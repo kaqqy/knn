@@ -5,7 +5,53 @@
 #include "json.h"
 #include "pq.h"
 
-static int	use_json(json_value *value)
+static void	knn_insert(json_value *data, json_value *idx_array, json_value *node_bounds, json_value *node_data, t_pq *pq, int index)
+{
+	// for some reason there's an extra array
+	t_arr	*center = arr_create(node_bounds->u.array.values[0]->u.array.values[index], -1);
+	double	radius = node_data->u.array.values[index]->u.array.values[3]->u.dbl;
+	int		i;
+	t_arr	*pt;
+
+	if (pq->size == pq->max_size && arr_dist(center, pq->query) - radius > pq_max_dist(pq))
+	{
+		// priority queue is full, closest point on ball is further away from furthest point in priority queue
+		return;
+	}
+	if (node_data->u.array.values[index]->u.array.values[2]->u.integer == 0)
+	{
+		// recursively call both children
+		knn_insert(data, idx_array, node_bounds, node_data, pq, 2 * index + 1);
+		knn_insert(data, idx_array, node_bounds, node_data, pq, 2 * index + 2);
+	}
+	else
+	{
+		// iterate through each node in leaf
+		for (i = node_data->u.array.values[index]->u.array.values[0]->u.integer; i < node_data->u.array.values[index]->u.array.values[1]->u.integer; i++)
+		{
+			pt = arr_create(data->u.array.values[idx_array->u.array.values[i]->u.integer], i);
+			pq_insert(pq, pt); // attempts to insert
+		}
+	}
+}
+
+static void	knn(json_value *data, json_value *idx_array, json_value *node_bounds, json_value *node_data, json_value *test_data, int neighbors)
+{
+	t_pq	*pq;
+	t_arr	*query;
+	int		i;
+
+	query = arr_create(test_data, -1);
+	pq = pq_create(neighbors, query);
+	knn_insert(data, idx_array, node_bounds, node_data, pq, 0);
+	for (i = 0; i < pq->size; i++)
+	{
+		printf("index: %d ; distance: %f\n", pq->arr[i]->index, arr_dist(query, pq->arr[i]));
+	}
+	printf("\n");
+}
+
+static int	use_json(json_value *value, json_value *test_data)
 {
 	int			i;
 	int			length;
@@ -13,6 +59,7 @@ static int	use_json(json_value *value)
 	json_value	*idx_array = NULL;
 	json_value	*node_bounds = NULL;
 	json_value	*node_data = NULL;
+	int			neighbors = -1;
 
 	if (value->type != json_object)
 	{
@@ -20,6 +67,19 @@ static int	use_json(json_value *value)
 		return 1;
 	}
 	length = value->u.object.length;
+	for (i = 0; i < length; i++)
+	{
+		if (strcmp(value->u.object.values[i].name, "n_neighbors") == 0)
+		{
+			neighbors = value->u.object.values[i].value->u.integer;
+			break;
+		}
+	}
+	if (neighbors <= 0)
+	{
+		fprintf(stderr, "Invalid neighbors\n");
+		return 1;
+	}
 	for (i = 0; i < length; i++)
 	{
 		if (strcmp(value->u.object.values[i].name, "_tree") == 0)
@@ -62,6 +122,14 @@ static int	use_json(json_value *value)
 	{
 		fprintf(stderr, "Missing key in _tree\n");
 		return 1;
+	}
+	if (test_data == NULL)
+	{
+		test_data = data;
+	}
+	for (i = 0; i < test_data->u.array.length; i++)
+	{
+		knn(data, idx_array, node_bounds, node_data, test_data->u.array.values[i], neighbors);
 	}
 
 	return 0;
@@ -129,7 +197,7 @@ int			main(int argc, char **argv)
 		exit(1);
 	}
 
-	ret = use_json(value); // everything that doesn't involve parsing the json file
+	ret = use_json(value, NULL); // everything that doesn't involve parsing the json file
 
 	json_value_free(value);
 	free(file_contents);

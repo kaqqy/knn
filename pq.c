@@ -1,24 +1,26 @@
 #include <stdlib.h>
 #include "pq.h"
-#include "json.h"
 
-t_arr	*arr_create(int k)
+t_arr	*arr_create(json_value *jarr, int index)
 {
 	t_arr	*arr;
 	int		i;
 
-	if (k < 1)
-		return NULL;
 	arr = (t_arr*)malloc(sizeof(*arr));
 	if (!arr)
 		return NULL;
-	arr->size = k;
-	arr->num = (double*)malloc(sizeof(*(arr->num)) * k);
+	arr->size = jarr->u.array.length;
+	arr->num = (double*)malloc(sizeof(*(arr->num)) * arr->size);
 	if (!arr->num)
 	{
 		free(arr);
 		return NULL;
 	}
+	for (i = 0; i < arr->size; i++)
+	{
+		arr->num[i] = jarr->u.array.values[i]->u.dbl;
+	}
+	arr->index = index;
 	return arr;
 }
 
@@ -41,7 +43,7 @@ double	arr_dist(t_arr *a, t_arr *b)
 	return dist;
 }
 
-t_pq	*pq_create(int k)
+t_pq	*pq_create(int k, t_arr *query)
 {
 	t_pq	*pq;
 	int		i;
@@ -63,15 +65,37 @@ t_pq	*pq_create(int k)
 	{
 		pq->arr[i] = NULL;
 	}
+	pq->query = query;
 	return pq;
 }
 
-void	pq_insert(t_pq *pq, t_arr *el, t_arr *center)
+int		pq_maxi(t_pq *pq)
 {
 	int		i;
 	int		maxi = -1;
 	double	curdist;
-	double	maxdist = arr_dist(el, center);
+	double	maxdist = DBL_MIN;
+
+	for (i = 0; i < pq->size; i++)
+	{
+		curdist = arr_dist(pq->arr[i], pq->query);
+		if (curdist > maxdist)
+		{
+			maxdist = curdist;
+			maxi = i;
+		}
+	}
+	return maxi;
+}
+
+double	pq_max_dist(t_pq *pq)
+{
+	return arr_dist(pq->arr[pq_maxi(pq)], pq->query);
+}
+
+void	pq_insert(t_pq *pq, t_arr *el)
+{
+	int		maxi;
 
 	if (pq->size < pq->max_size)
 	{
@@ -79,18 +103,10 @@ void	pq_insert(t_pq *pq, t_arr *el, t_arr *center)
 		pq->size++;
 		return;
 	}
-	for (i = 0; i < pq->size; i++)
+	maxi = pq_maxi(pq);
+	if (arr_dist(el, pq->query) < arr_dist(pq->arr[maxi], pq->query))
 	{
-		curdist = arr_dist(pq->arr[i], center);
-		if (curdist > maxdist)
-		{
-			maxdist = curdist;
-			maxi = i;
-		}
-	}
-	if (maxi != -1)
-	{
-		// free pq->arr[maxi]
+		// free pq->arr[maxi];
 		pq->arr[maxi] = el;
 	}
 }
