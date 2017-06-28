@@ -1,18 +1,70 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include "json.h"
+#include "pq.h"
 
-static void	use_json(json_value *value)
+static int	use_json(json_value *value)
 {
-	if (value->type == json_object)
+	int			i;
+	int			length;
+	json_value	*data = NULL;
+	json_value	*idx_array = NULL;
+	json_value	*node_bounds = NULL;
+	json_value	*node_data = NULL;
+
+	if (value->type != json_object)
 	{
-		printf("is object\n");
+		fprintf(stderr, "Json is not an object\n");
+		return 1;
 	}
-	else
+	length = value->u.object.length;
+	for (i = 0; i < length; i++)
 	{
-		printf("is not object\n");
+		if (strcmp(value->u.object.values[i].name, "_tree") == 0)
+		{
+			break;
+		}
 	}
+	if (i == length)
+	{
+		fprintf(stderr, "key=_tree not found\n");
+		return 1;
+	}
+	value = value->u.object.values[i].value;
+	if (value->type != json_object)
+	{
+		fprintf(stderr, "_tree is not an object\n");
+		return 1;
+	}
+	length = value->u.object.length;
+	for (i = 0; i < length; i++)
+	{
+		if (strcmp(value->u.object.values[i].name, "data") == 0)
+		{
+			data = value->u.object.values[i].value;
+		}
+		else if (strcmp(value->u.object.values[i].name, "idx_array") == 0)
+		{
+			idx_array = value->u.object.values[i].value;
+		}
+		else if (strcmp(value->u.object.values[i].name, "node_bounds") == 0)
+		{
+			node_bounds = value->u.object.values[i].value;
+		}
+		else if (strcmp(value->u.object.values[i].name, "node_data") == 0)
+		{
+			node_data = value->u.object.values[i].value;
+		}
+	}
+	if (data == NULL || idx_array == NULL || node_bounds == NULL || node_data == NULL)
+	{
+		fprintf(stderr, "Missing key in _tree\n");
+		return 1;
+	}
+
+	return 0;
 }
 
 int			main(int argc, char **argv)
@@ -24,6 +76,7 @@ int			main(int argc, char **argv)
 	char		*file_contents;
 	json_char	*json;
 	json_value	*value;
+	int			ret;
 
 	if (argc != 2)
 	{
@@ -64,8 +117,8 @@ int			main(int argc, char **argv)
 	}
 	fclose(fp);
 
-	printf("%s\n", file_contents);
-	printf("------------------------------\n\n");
+	// printf("%s\n", file_contents);
+	// printf("------------------------------\n\n");
 
 	json = (json_char*)file_contents;
 	value = json_parse(json, file_size);
@@ -76,9 +129,9 @@ int			main(int argc, char **argv)
 		exit(1);
 	}
 
-	use_json(value); // everything that doesn't involve parsing the json file
+	ret = use_json(value); // everything that doesn't involve parsing the json file
 
 	json_value_free(value);
 	free(file_contents);
-	return 0;
+	return ret;
 }

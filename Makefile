@@ -1,5 +1,5 @@
 NAME = knn
-SRC = main.c json.c
+SRC = main.c json.c pq.c
 HDR = .
 
 .PHONY: all fclean re
