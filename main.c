@@ -145,11 +145,13 @@ int			main(int argc, char **argv)
 	char		*file_contents;
 	json_char	*json;
 	json_value	*value;
+	char		*file_contents2;
+	json_value	*value2 = NULL;
 	int			ret;
 
-	if (argc != 2)
+	if (argc < 2 || argc > 3)
 	{
-		fprintf(stderr, "%s <file_json>\n", argv[0]);
+		fprintf(stderr, "%s <json_file> <optional_json_file>\n", argv[0]);
 		return 1;
 	}
 	filename = argv[1];
@@ -175,10 +177,8 @@ int			main(int argc, char **argv)
 		free(file_contents);
 		return 1;
 	}
-	int test;
-	if ((test = fread(file_contents, file_size, 1, fp)) != 1)
+	if (fread(file_contents, file_size, 1, fp) != 1)
 	{
-		fprintf(stderr, "%d\n", test);
 		fprintf(stderr, "Unable to read content of %s\n", filename);
 		fclose(fp);
 		free(file_contents);
@@ -198,7 +198,21 @@ int			main(int argc, char **argv)
 		exit(1);
 	}
 
-	ret = use_json(value, NULL); // everything that doesn't involve parsing the json file
+	if (argc == 3)
+	{
+		// im lazy
+		filename = argv[2];
+		if (stat(filename, &filestatus) != 0)
+			return 1;
+		file_size = filestatus.st_size;
+		file_contents2 = (char*)malloc(filestatus.st_size);
+		fp = fopen(filename, "rt");
+		fread(file_contents2, file_size, 1, fp);
+		fclose(fp);
+		value2 = json_parse((json_char*)file_contents2, file_size);
+	}
+
+	ret = use_json(value, value2); // everything that doesn't involve parsing the json file
 
 	json_value_free(value);
 	free(file_contents);
