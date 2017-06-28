@@ -1,12 +1,13 @@
 NAME = knn
-SRC = main.c
+SRC = main.c json.c
+HDR = .
 
 .PHONY: all fclean re
 
 all: $(NAME)
 
 $(NAME):
-	gcc $(SRC) -o $(NAME)
+	gcc $(SRC) -I$(HDR) -o $(NAME)
 
 fclean:
 	rm $(NAME)
