@@ -44,6 +44,7 @@ static void	knn(json_value *data, json_value *idx_array, json_value *node_bounds
 	query = arr_create(test_data, -1);
 	pq = pq_create(neighbors, query);
 	knn_insert(data, idx_array, node_bounds, node_data, pq, 0);
+	pq_quicksort(pq, 0, pq->size - 1);
 	for (i = 0; i < pq->size; i++)
 	{
 		printf("index: %d ; distance: %f\n", pq->arr[i]->index, arr_dist(query, pq->arr[i]));

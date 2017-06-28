@@ -110,3 +110,36 @@ void	pq_insert(t_pq *pq, t_arr *el)
 		pq->arr[maxi] = el;
 	}
 }
+
+void	swap(void **a, void **b)
+{
+	void	*c;
+
+	c = *a;
+	*a = *b;
+	*b = c;
+}
+
+void	pq_quicksort(t_pq *pq, int l, int r)
+{
+	int		p;
+	int		i;
+
+	if (l >= r)
+	{
+		return;
+	}
+	p = l;
+	for (i = l; i < r; i++)
+	{
+		// pivot is at index r
+		if (arr_dist(pq->query, pq->arr[i]) <= arr_dist(pq->query, pq->arr[r]))
+		{
+			swap((void**)&pq->arr[p], (void**)&pq->arr[i]);
+			p++;
+		}
+	}
+	swap((void**)&pq->arr[p], (void**)&pq->arr[r]);
+	pq_quicksort(pq, l, p - 1);
+	pq_quicksort(pq, p + 1, r);
+}

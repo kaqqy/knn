@@ -23,4 +23,5 @@ t_pq	*pq_create(int k, t_arr *query);
 int		pq_maxi(t_pq *pq);
 double	pq_max_dist(t_pq *pq);
 void	pq_insert(t_pq *pq, t_arr *el);
+void	pq_quicksort(t_pq *pq, int l, int r);
 #endif
