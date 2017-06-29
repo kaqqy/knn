@@ -57,7 +57,7 @@ static void	knn(json_value *data, json_value *idx_array, json_value *node_bounds
 	{
 		if (i > 0)
 			printf(", ");
-		printf("%.15f", arr_dist(query, pq->arr[i]));
+		printf("%.12f", arr_dist(query, pq->arr[i]));
 	}
 	printf("]}");
 }
