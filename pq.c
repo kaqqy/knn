@@ -1,6 +1,15 @@
 #include <stdlib.h>
 #include "pq.h"
 
+static void	swap(void **a, void **b)
+{
+	void	*c;
+
+	c = *a;
+	*a = *b;
+	*b = c;
+}
+
 t_arr	*arr_create(json_value *jarr, int index)
 {
 	t_arr	*arr;
@@ -45,7 +54,6 @@ double	arr_dist(t_arr *a, t_arr *b)
 
 t_pq	*pq_create(int k, t_arr *query)
 {
-	// i would've made a max heap but it's more code and i dont have enough time right now
 	t_pq	*pq;
 	int		i;
 
@@ -70,28 +78,48 @@ t_pq	*pq_create(int k, t_arr *query)
 	return pq;
 }
 
-int		pq_maxi(t_pq *pq)
-{
-	int		i;
-	int		maxi = -1;
-	double	curdist;
-	double	maxdist = DBL_MIN;
-
-	for (i = 0; i < pq->size; i++)
-	{
-		curdist = arr_dist(pq->arr[i], pq->query);
-		if (curdist > maxdist)
-		{
-			maxdist = curdist;
-			maxi = i;
-		}
-	}
-	return maxi;
-}
-
 double	pq_max_dist(t_pq *pq)
 {
-	return arr_dist(pq->arr[pq_maxi(pq)], pq->query);
+	return arr_dist(pq->arr[0], pq->query);
+}
+
+void	heapify_up(t_pq *pq, int index)
+{
+	while (index > 0)
+	{
+		if (arr_dist(pq->query, pq->arr[index]) > arr_dist(pq->query, pq->arr[(index - 1) / 2]))
+		{
+			swap((void**)&pq->arr[index], (void**)&pq->arr[(index - 1) / 2]);
+			index = (index - 1) / 2;
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
+void	heapify_down(t_pq *pq, int index)
+{
+	int		max_index = index;
+	double	max_dist = arr_dist(pq->query, pq->arr[index]);
+	double	cur_dist;
+
+	if (2 * index + 1 < pq->size && (cur_dist = arr_dist(pq->query, pq->arr[2 * index + 1])) > max_dist)
+	{
+		max_index = 2 * index + 1;
+		max_dist = cur_dist;
+	}
+	if (2 * index + 2 < pq->size && (cur_dist = arr_dist(pq->query, pq->arr[2 * index + 2])) > max_dist)
+	{
+		max_index = 2 * index + 2;
+		max_dist = cur_dist;
+	}
+	if (max_index != index)
+	{
+		swap((void**)&pq->arr[index], (void**)&pq->arr[max_index]);
+		heapify_down(pq, max_index);
+	}
 }
 
 void	pq_insert(t_pq *pq, t_arr *el)
@@ -102,23 +130,15 @@ void	pq_insert(t_pq *pq, t_arr *el)
 	{
 		pq->arr[pq->size] = el;
 		pq->size++;
+		heapify_up(pq, pq->size - 1);
 		return;
 	}
-	maxi = pq_maxi(pq);
-	if (arr_dist(el, pq->query) < arr_dist(pq->arr[maxi], pq->query))
+	if (arr_dist(el, pq->query) < arr_dist(pq->arr[0], pq->query))
 	{
-		// free pq->arr[maxi];
-		pq->arr[maxi] = el;
+		// free pq->arr[0];
+		pq->arr[0] = el;
+		heapify_down(pq, 0);
 	}
-}
-
-void	swap(void **a, void **b)
-{
-	void	*c;
-
-	c = *a;
-	*a = *b;
-	*b = c;
 }
 
 void	pq_quicksort(t_pq *pq, int l, int r)
