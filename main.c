@@ -45,11 +45,21 @@ static void	knn(json_value *data, json_value *idx_array, json_value *node_bounds
 	pq = pq_create(neighbors, query);
 	knn_insert(data, idx_array, node_bounds, node_data, pq, 0);
 	pq_quicksort(pq, 0, pq->size - 1);
+	printf("{\"knn_idx\": [");
 	for (i = 0; i < pq->size; i++)
 	{
-		printf("index: %d ; distance: %f\n", pq->arr[i]->index, arr_dist(query, pq->arr[i]));
+		if (i > 0)
+			printf(", ");
+		printf("%d", pq->arr[i]->index);
 	}
-	printf("\n");
+	printf("], \"knn_dist\": [");
+	for (i = 0; i < pq->size; i++)
+	{
+		if (i > 0)
+			printf(", ");
+		printf("%.15f", arr_dist(query, pq->arr[i]));
+	}
+	printf("]}");
 }
 
 static int	use_json(json_value *value, json_value *test_data)
@@ -128,10 +138,14 @@ static int	use_json(json_value *value, json_value *test_data)
 	{
 		test_data = data;
 	}
+	printf("[");
 	for (i = 0; i < test_data->u.array.length; i++)
 	{
+		if (i > 0)
+			printf(", ");
 		knn(data, idx_array, node_bounds, node_data, test_data->u.array.values[i], neighbors);
 	}
+	printf("]");
 
 	return 0;
 }

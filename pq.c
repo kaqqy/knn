@@ -45,6 +45,7 @@ double	arr_dist(t_arr *a, t_arr *b)
 
 t_pq	*pq_create(int k, t_arr *query)
 {
+	// i would've made a max heap but it's more code and i dont have enough time right now
 	t_pq	*pq;
 	int		i;
 
